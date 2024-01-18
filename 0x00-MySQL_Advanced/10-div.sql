@@ -11,5 +11,16 @@
 -- b, INT
 -- And returns a / b or 0 if b == 0
 
-CREATE INDEX idx_name_first_score
-ON names(name(1), score);
+DELIMITER //
+
+DROP FUNCTION IF EXISTS SafeDiv;
+CREATE FUNCTION SafeDiv(a INT, b INT)
+RETURNS FLOAT DETERMINISTIC
+BEGIN
+	RETURN (IF (b = 0, 0, a / b));
+END //
+
+DELIMITER ;git add .
+git commit -m '10'
+git push
+
