@@ -2,28 +2,37 @@
 -- 'score', and 'weight'
 
 -- Create the 'alfa' stored procedure
-DELIMITER //
 
-CREATE PROCEDURE ComputeAverageWeightedScoreForUsers()
+DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUsers;
+DELIMITER $$
+CREATE PROCEDURE ComputeAverageWeightedScoreForUsers ()
 BEGIN
-    -- Create a temporary table to store weighted scores
-    CREATE TEMPORARY TABLE temp_weighted_scores AS
-        SELECT
-            student_id,
-            SUM(score * weight) / SUM(weight) AS weighted_average
-        FROM
-            students
-        GROUP BY
-            student_id;
+    ALTER TABLE users ADD total_weighted_score INT NOT NULL;
+    ALTER TABLE users ADD total_weight INT NOT NULL;
 
-    -- Update the main table with the computed weighted averages
-    UPDATE students
-    SET students.weighted_average = temp_weighted_scores.weighted_average
-    FROM temp_weighted_scores
-    WHERE students.student_id = temp_weighted_scores.student_id;
+    UPDATE users
+        SET total_weighted_score = (
+            SELECT SUM(corrections.score * projects.weight)
+            FROM corrections
+                INNER JOIN projects
+                    ON corrections.project_id = projects.id
+            WHERE corrections.user_id = users.id
+            );
 
-    -- Drop the temporary table
-    DROP TEMPORARY TABLE IF EXISTS temp_weighted_scores;
-END //
+    UPDATE users
+        SET total_weight = (
+            SELECT SUM(projects.weight)
+                FROM corrections
+                    INNER JOIN projects
+                        ON corrections.project_id = projects.id
+                WHERE corrections.user_id = users.id
+            );
 
+    UPDATE users
+        SET users.average_score = IF(users.total_weight = 0, 0, users.total_weighted_score / users.total_weight);
+    ALTER TABLE users
+        DROP COLUMN total_weighted_score;
+    ALTER TABLE users
+        DROP COLUMN total_weight;
+END $$
 DELIMITER ;
