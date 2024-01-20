@@ -1,23 +1,29 @@
--- Write a SQL script that creates a stored procedure
--- ComputeAverageWeightedScoreForUsers that computes and store
--- the average weighted score for all students.
---
--- Requirements:
--- 
--- Procedure ComputeAverageWeightedScoreForUsers is not taking any input.
--- Tips:
---
---Calculate-Weighted-Average
+-- Assuming a table named 'students' with columns 'student_id',
+-- 'score', and 'weight'
 
-DELIMITER $$
-DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUsers;
+-- Create the 'alfa' stored procedure
+DELIMITER //
+
 CREATE PROCEDURE ComputeAverageWeightedScoreForUsers()
 BEGIN
-    UPDATE users set average_score = (SELECT
-    SUM(corrections.score * projects.weight) / SUM(projects.weight)
-    FROM corrections
-    INNER JOIN projects
-    ON projects.id = corrections.project_id
-    where corrections.user_id = users.id);
-END $$
+    -- Create a temporary table to store weighted scores
+    CREATE TEMPORARY TABLE temp_weighted_scores AS
+        SELECT
+            student_id,
+            SUM(score * weight) / SUM(weight) AS weighted_average
+        FROM
+            students
+        GROUP BY
+            student_id;
+
+    -- Update the main table with the computed weighted averages
+    UPDATE students
+    SET students.weighted_average = temp_weighted_scores.weighted_average
+    FROM temp_weighted_scores
+    WHERE students.student_id = temp_weighted_scores.student_id;
+
+    -- Drop the temporary table
+    DROP TEMPORARY TABLE IF EXISTS temp_weighted_scores;
+END //
+
 DELIMITER ;
